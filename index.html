@@ -153,6 +153,41 @@ tr:hover td { background: var(--gray-50); }
 .badge-amber { background: #FEF3C7; color: #92400E; }
 .badge-red { background: #FEE2E2; color: #991B1B; }
 
+.group-filter {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+.group-btn {
+  padding: 7px 14px;
+  background: var(--gray-100);
+  border: 1px solid var(--gray-200);
+  border-radius: 20px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--gray-700);
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.group-btn:hover {
+  background: var(--light);
+  border-color: var(--secondary);
+  color: var(--primary);
+}
+.group-btn.active {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+  font-weight: 600;
+}
+.group-btn .count {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  opacity: 0.75;
+  margin-left: 4px;
+}
 .heatmap-wrapper {
   overflow-x: auto;
   border: 1px solid var(--gray-200);
@@ -256,7 +291,7 @@ footer {
 <header>
   <div>
     <h1>🏭 ZIGA Production Simulation Dashboard</h1>
-    <div class="subtitle">Generated 10 May 2026 11:04 · Horizon 2026-05-10 → 2026-08-25</div>
+    <div class="subtitle">Generated 10 May 2026 11:25 · Horizon 2026-05-10 → 2026-08-25</div>
   </div>
   <div class="slogan">Better · Cheaper · Faster</div>
 </header>
@@ -322,8 +357,19 @@ footer {
 
 <div class="card">
   <h2>Machine Daily Load Heatmap</h2>
+  <div class="group-filter" id="group-filter">
+    <button class="group-btn active" data-group="all">ทั้งหมด</button>
+    <button class="group-btn" data-group="rf">รีด (RF)</button>
+    <button class="group-btn" data-group="ch">ลบคม (CH)</button>
+    <button class="group-btn" data-group="ta">เกลียว (TA)</button>
+    <button class="group-btn" data-group="pa">Pack (PA / LO)</button>
+    <button class="group-btn" data-group="fdp">ข้อต่อ (FDP)</button>
+    <button class="group-btn" data-group="bow">ท่อโค้ง (Bow)</button>
+    <button class="group-btn" data-group="cu">ตัด (CU)</button>
+  </div>
   <p style="font-size: 12px; color: var(--gray-500); margin-bottom: 12px;">
     🟥 &gt;100% (bottleneck) · 🟧 90–100% (borderline) · 🟩 1–90% (load) · ⬜ idle
+    · <span id="filter-summary" style="color: var(--primary); font-weight: 600;"></span>
   </p>
   <div class="heatmap-wrapper" id="heatmap-wrap"></div>
 </div>
@@ -436,6 +482,66 @@ document.getElementById('eom-body').innerHTML = eomData.map(e => {
    <td>${e.StartDay}</td><td>${e.EndDay}</td>
    <td><span class="badge ${cls}">${e.EOM_Status}</span></td></tr>`;
 }).join('');
+
+// Machine groups (substring match — "RF_05" matches "RF_05" but not "PA_EL01")
+const MACHINE_GROUPS = {
+  rf:  ['RF_'],
+  ch:  ['CH_A', 'CH_ELBOW'],
+  ta:  ['TA_A', 'TA_M'],
+  pa:  ['LO_R', 'PA_M', 'PA_EL'],
+  fdp: ['ข้อต่อ-'],
+  bow: ['CU_HS', 'BE_M', 'CH_ELBOW', 'TA_M_ELBOW'],
+  cu:  ['CU_'],
+};
+
+function applyFilter(group) {
+  const allRows = document.querySelectorAll('.heatmap tbody tr');
+  const labels = {all:'ทั้งหมด', rf:'รีด', ch:'ลบคม', ta:'เกลียว', pa:'Pack', fdp:'ข้อต่อ', bow:'ท่อโค้ง', cu:'ตัด'};
+  let shown = 0, totalOT = 0;
+  
+  allRows.forEach(r => {
+    const machineCell = r.querySelector('td.machine-col');
+    if (!machineCell) return;
+    const m = machineCell.textContent.trim();
+    let match = false;
+    if (group === 'all') {
+      match = true;
+    } else {
+      const tokens = MACHINE_GROUPS[group] || [];
+      match = tokens.some(t => m.includes(t));
+    }
+    r.style.display = match ? '' : 'none';
+    if (match) {
+      shown++;
+      // accumulate OT for this machine
+      const ot = otTop.find(o => o.Machine === m);
+      if (ot) totalOT += ot.OverflowHours || 0;
+    }
+  });
+  
+  const otAll = otTop.reduce((s,o) => s + (o.OverflowHours||0), 0);
+  const otTopShown = otTop.filter(o => {
+    if (group === 'all') return true;
+    const tokens = MACHINE_GROUPS[group] || [];
+    return tokens.some(t => o.Machine.includes(t));
+  });
+  const otSum = otTopShown.reduce((s,o) => s + (o.OverflowHours||0), 0);
+  
+  const summary = `แสดง ${shown} เครื่อง (${labels[group]||group})` + 
+                  (otSum > 0 ? ` · OT ที่ต้องการ ${otSum.toFixed(0)} ชม.` : ' · ไม่มี OT');
+  document.getElementById('filter-summary').textContent = summary;
+}
+
+document.querySelectorAll('#group-filter .group-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#group-filter .group-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    applyFilter(btn.dataset.group);
+  });
+});
+
+// Initial summary
+applyFilter('all');
 
 // Tabs
 document.querySelectorAll('.tab').forEach(t => {
