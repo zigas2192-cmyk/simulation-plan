@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ZIGA Production Simulation Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --primary: #065F46;
+  --secondary: #059669;
+  --accent: #34D399;
+  --light: #ECFDF5;
+  --green: #059669;
+  --amber: #D97706;
+  --red: #DC2626;
+  --gray-50: #F9FAFB;
+  --gray-100: #F3F4F6;
+  --gray-200: #E5E7EB;
+  --gray-500: #6B7280;
+  --gray-700: #374151;
+  --gray-900: #111827;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: 'IBM Plex Sans Thai', -apple-system, sans-serif;
+  background: var(--gray-50);
+  color: var(--gray-900);
+  padding: 24px;
+  min-height: 100vh;
+}
+.container { max-width: 1400px; margin: 0 auto; }
+header {
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  color: white;
+  padding: 24px 32px;
+  border-radius: 12px;
+  margin-bottom: 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+header h1 { font-size: 24px; font-weight: 700; }
+header .subtitle { font-size: 13px; opacity: 0.85; margin-top: 4px; }
+header .slogan {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  opacity: 0.7;
+  letter-spacing: 0.05em;
+}
+
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.kpi {
+  background: white;
+  padding: 20px;
+  border-radius: 10px;
+  border-left: 4px solid var(--primary);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+.kpi.alert { border-left-color: var(--red); }
+.kpi.warn { border-left-color: var(--amber); }
+.kpi-label { font-size: 11px; color: var(--gray-500); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; }
+.kpi-value { font-size: 28px; font-weight: 700; color: var(--primary); margin-top: 6px; font-family: 'IBM Plex Mono', monospace; }
+.kpi.alert .kpi-value { color: var(--red); }
+.kpi.warn .kpi-value { color: var(--amber); }
+.kpi-sub { font-size: 12px; color: var(--gray-500); margin-top: 4px; }
+
+.card {
+  background: white;
+  padding: 24px;
+  border-radius: 10px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  margin-bottom: 24px;
+}
+.card h2 {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--primary);
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid var(--light);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.card h2::before {
+  content: '';
+  width: 4px;
+  height: 18px;
+  background: var(--secondary);
+  border-radius: 2px;
+}
+
+.tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 2px solid var(--gray-200);
+  margin-bottom: 16px;
+}
+.tab {
+  padding: 10px 18px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--gray-500);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  transition: all 0.15s;
+  font-weight: 500;
+}
+.tab:hover { color: var(--primary); }
+.tab.active { color: var(--primary); border-bottom-color: var(--primary); font-weight: 600; }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+th {
+  background: var(--primary);
+  color: white;
+  padding: 10px 12px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 12px;
+  letter-spacing: 0.02em;
+}
+td {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--gray-100);
+}
+tr:hover td { background: var(--gray-50); }
+.num { font-family: 'IBM Plex Mono', monospace; text-align: right; }
+
+.badge {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+.badge-green { background: #D1FAE5; color: #065F46; }
+.badge-amber { background: #FEF3C7; color: #92400E; }
+.badge-red { background: #FEE2E2; color: #991B1B; }
+
+.heatmap-wrapper {
+  overflow-x: auto;
+  border: 1px solid var(--gray-200);
+  border-radius: 8px;
+}
+.heatmap {
+  border-collapse: collapse;
+  font-size: 10px;
+  font-family: 'IBM Plex Mono', monospace;
+}
+.heatmap th, .heatmap td {
+  padding: 4px 5px;
+  text-align: center;
+  border: 1px solid var(--gray-200);
+  min-width: 32px;
+  background: white;
+  color: var(--gray-700);
+}
+.heatmap th.machine-col, .heatmap td.machine-col {
+  position: sticky;
+  left: 0;
+  background: var(--light);
+  font-weight: 600;
+  text-align: left;
+  min-width: 130px;
+  color: var(--primary);
+  z-index: 2;
+}
+.heatmap thead th {
+  position: sticky;
+  top: 0;
+  background: var(--primary);
+  color: white;
+  font-size: 9px;
+  z-index: 3;
+}
+.heatmap thead th.machine-col {
+  z-index: 4;
+  background: var(--primary);
+  color: white;
+}
+
+.bar-chart {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.bar-row {
+  display: grid;
+  grid-template-columns: 180px 1fr 80px;
+  gap: 12px;
+  align-items: center;
+}
+.bar-label { font-size: 13px; font-weight: 500; color: var(--gray-700); }
+.bar-track {
+  background: var(--gray-100);
+  border-radius: 4px;
+  height: 22px;
+  overflow: hidden;
+  position: relative;
+}
+.bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--secondary), var(--primary));
+  border-radius: 4px;
+  transition: width 0.3s;
+}
+.bar-fill.red { background: linear-gradient(90deg, #FCA5A5, var(--red)); }
+.bar-fill.amber { background: linear-gradient(90deg, #FCD34D, var(--amber)); }
+.bar-value { font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: var(--gray-700); text-align: right; }
+
+.eom-bars {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+.eom-card {
+  background: var(--gray-50);
+  padding: 16px;
+  border-radius: 8px;
+  text-align: center;
+}
+.eom-card.fg { background: #D1FAE5; }
+.eom-card.wip { background: #FEF3C7; }
+.eom-card.not { background: #FEE2E2; }
+.eom-status { font-size: 11px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--gray-700); }
+.eom-jobs { font-size: 32px; font-weight: 700; font-family: 'IBM Plex Mono', monospace; color: var(--primary); margin: 8px 0 4px; }
+.eom-tons { font-size: 13px; color: var(--gray-700); font-family: 'IBM Plex Mono', monospace; }
+
+footer {
+  text-align: center;
+  font-size: 11px;
+  color: var(--gray-500);
+  margin-top: 32px;
+  padding: 16px;
+}
+</style>
+</head>
+<body>
+<div class="container">
+<header>
+  <div>
+    <h1>🏭 ZIGA Production Simulation Dashboard</h1>
+    <div class="subtitle">Generated 10 May 2026 11:04 · Horizon 2026-05-10 → 2026-08-25</div>
+  </div>
+  <div class="slogan">Better · Cheaper · Faster</div>
+</header>
+
+<div class="kpi-grid">
+  <div class="kpi">
+    <div class="kpi-label">Pending Jobs</div>
+    <div class="kpi-value">118</div>
+    <div class="kpi-sub">to schedule (+ 16 excluded)</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-label">Total Tonnage</div>
+    <div class="kpi-value">2,099</div>
+    <div class="kpi-sub">ตัน (2,099,209 kg)</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-label">FG by EOM</div>
+    <div class="kpi-value" style="color: var(--green)">105</div>
+    <div class="kpi-sub">1,786.4 ตัน คาดว่าจะเสร็จ</div>
+  </div>
+  <div class="kpi warn">
+    <div class="kpi-label">WIP at EOM</div>
+    <div class="kpi-value">13</div>
+    <div class="kpi-sub">312.8 ตัน ค้างเข้าเดือน 6</div>
+  </div>
+  <div class="kpi alert">
+    <div class="kpi-label">Bottleneck Days</div>
+    <div class="kpi-value">289</div>
+    <div class="kpi-sub">days @ &gt;100% util</div>
+  </div>
+  <div class="kpi alert">
+    <div class="kpi-label">OT Hours Needed</div>
+    <div class="kpi-value">4,499</div>
+    <div class="kpi-sub">รวม 28 เครื่อง</div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>EOM Forecast (สิ้นเดือน 31 พ.ค. 2569)</h2>
+  <div class="eom-bars">
+    <div class="eom-card fg">
+      <div class="eom-status">✓ Finished Goods</div>
+      <div class="eom-jobs">105</div>
+      <div class="eom-tons">1,786.4 ตัน</div>
+    </div>
+    <div class="eom-card wip">
+      <div class="eom-status">⚙ Work-In-Progress</div>
+      <div class="eom-jobs">13</div>
+      <div class="eom-tons">312.8 ตัน</div>
+    </div>
+    <div class="eom-card not">
+      <div class="eom-status">⏸ Not Started</div>
+      <div class="eom-jobs">0</div>
+      <div class="eom-tons">0.0 ตัน</div>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>Top Bottleneck Machines (OT Hours)</h2>
+  <div class="bar-chart" id="ot-chart"></div>
+</div>
+
+<div class="card">
+  <h2>Machine Daily Load Heatmap</h2>
+  <p style="font-size: 12px; color: var(--gray-500); margin-bottom: 12px;">
+    🟥 &gt;100% (bottleneck) · 🟧 90–100% (borderline) · 🟩 1–90% (load) · ⬜ idle
+  </p>
+  <div class="heatmap-wrapper" id="heatmap-wrap"></div>
+</div>
+
+<div class="card">
+  <h2>Detail Tables</h2>
+  <div class="tabs">
+    <button class="tab active" data-tab="routes">Route Mix</button>
+    <button class="tab" data-tab="schedule">Schedule (top 50)</button>
+    <button class="tab" data-tab="eom-detail">EOM Detail</button>
+  </div>
+
+  <div class="tab-content active" id="tab-routes">
+    <table>
+      <thead><tr><th>Route</th><th class="num">Jobs</th><th class="num">Tonnage (ตัน)</th></tr></thead>
+      <tbody id="routes-body"></tbody>
+    </table>
+  </div>
+  <div class="tab-content" id="tab-schedule">
+    <table>
+      <thead><tr><th>Job</th><th>Op#</th><th>Op</th><th>Brand</th><th>Size</th><th>TH</th>
+      <th class="num">Qty</th><th>Machine</th><th>Start</th><th>End</th><th class="num">Days</th></tr></thead>
+      <tbody id="schedule-body"></tbody>
+    </table>
+  </div>
+  <div class="tab-content" id="tab-eom-detail">
+    <table>
+      <thead><tr><th>Job</th><th>Route</th><th>Brand</th><th class="num">Wt (kg)</th>
+      <th>Start</th><th>End</th><th>Status</th></tr></thead>
+      <tbody id="eom-body"></tbody>
+    </table>
+  </div>
+</div>
+
+<footer>
+  ZIGA Innovation Pcl · Production Simulation v2.0 · Better · Cheaper · Faster
+</footer>
+</div>
+
+<script>
+const otTop = [{"Machine": "\u0e02\u0e49\u0e2d\u0e15\u0e48\u0e2d-\u0e40\u0e01\u0e25\u0e35\u0e22\u0e27", "OverflowMin": 65540.4, "OverflowHours": 1092.3, "OverflowDays": 33, "AvgOverflowPerDay_min": 1986.1, "OT_Recommendation": "+34h/day x 33d"}, {"Machine": "PA_EL01", "OverflowMin": 34286.8, "OverflowHours": 571.4, "OverflowDays": 29, "AvgOverflowPerDay_min": 1182.3, "OT_Recommendation": "+20h/day x 29d"}, {"Machine": "CU_HS04", "OverflowMin": 32815.1, "OverflowHours": 546.9, "OverflowDays": 37, "AvgOverflowPerDay_min": 886.9, "OT_Recommendation": "+15h/day x 37d"}, {"Machine": "\u0e02\u0e49\u0e2d\u0e15\u0e48\u0e2d-\u0e25\u0e49\u0e32\u0e07", "OverflowMin": 23894.3, "OverflowHours": 398.2, "OverflowDays": 31, "AvgOverflowPerDay_min": 770.8, "OT_Recommendation": "+13h/day x 31d"}, {"Machine": "\u0e02\u0e49\u0e2d\u0e15\u0e48\u0e2d-\u0e2d\u0e31\u0e14", "OverflowMin": 19570.1, "OverflowHours": 326.2, "OverflowDays": 26, "AvgOverflowPerDay_min": 752.7, "OT_Recommendation": "+13h/day x 26d"}, {"Machine": "\u0e02\u0e49\u0e2d\u0e15\u0e48\u0e2d-\u0e25\u0e1a\u0e04\u0e21", "OverflowMin": 17796.3, "OverflowHours": 296.6, "OverflowDays": 29, "AvgOverflowPerDay_min": 613.7, "OT_Recommendation": "+11h/day x 29d"}, {"Machine": "CU_BL01", "OverflowMin": 8749.7, "OverflowHours": 145.8, "OverflowDays": 6, "AvgOverflowPerDay_min": 1458.3, "OT_Recommendation": "+25h/day x 6d"}, {"Machine": "CU_HS05", "OverflowMin": 8363.2, "OverflowHours": 139.4, "OverflowDays": 6, "AvgOverflowPerDay_min": 1393.9, "OT_Recommendation": "+24h/day x 6d"}, {"Machine": "RF_07", "OverflowMin": 7919.2, "OverflowHours": 132.0, "OverflowDays": 7, "AvgOverflowPerDay_min": 1131.3, "OT_Recommendation": "+19h/day x 7d"}, {"Machine": "RF_05", "OverflowMin": 7022.1, "OverflowHours": 117.0, "OverflowDays": 5, "AvgOverflowPerDay_min": 1404.4, "OT_Recommendation": "+24h/day x 5d"}];
+const machinesList = ["\u0e02\u0e49\u0e2d\u0e15\u0e48\u0e2d-\u0e40\u0e01\u0e25\u0e35\u0e22\u0e27", "\u0e02\u0e49\u0e2d\u0e15\u0e48\u0e2d-\u0e25\u0e49\u0e32\u0e07", "PA_EL01", "CU_HS04", "\u0e02\u0e49\u0e2d\u0e15\u0e48\u0e2d-\u0e25\u0e1a\u0e04\u0e21", "\u0e02\u0e49\u0e2d\u0e15\u0e48\u0e2d-\u0e2d\u0e31\u0e14", "CU_HS05", "RF_06", "RF_07", "TA_A05", "CU_BL01", "RF_05", "RF_08", "LO_R08+PA_M08", "TA_A04", "TA_M02", "PA_EL02", "CH_A06", "CH_A05", "TA_A03", "TA_A06", "LO_R02+PA_M02", "LO_R06+PA_M06", "CH_A02", "CH_A03", "RF_04", "TA_M_ELBOW_01", "BE_M01", "TA_M01", "CH_ELBOW01", "LO_R05+PA_M05", "LO_R01+PA_M01"];
+const daysList = ["2026-05-10", "2026-05-11", "2026-05-12", "2026-05-13", "2026-05-14", "2026-05-15", "2026-05-16", "2026-05-17", "2026-05-18", "2026-05-19", "2026-05-20", "2026-05-21", "2026-05-22", "2026-05-23", "2026-05-24", "2026-05-25", "2026-05-26", "2026-05-27", "2026-05-28", "2026-05-29", "2026-05-30", "2026-05-31", "2026-06-01", "2026-06-02", "2026-06-03", "2026-06-04", "2026-06-05", "2026-06-06", "2026-06-07", "2026-06-08", "2026-06-09", "2026-06-10", "2026-06-11", "2026-06-12", "2026-06-13", "2026-06-14", "2026-06-15", "2026-06-16", "2026-06-17", "2026-06-18", "2026-06-19", "2026-06-20", "2026-06-21", "2026-06-22", "2026-06-23", "2026-06-24", "2026-06-25", "2026-06-26", "2026-06-27", "2026-06-28", "2026-06-29", "2026-06-30", "2026-07-01", "2026-07-02", "2026-07-03", "2026-07-04", "2026-07-05", "2026-07-06", "2026-07-07", "2026-07-08", "2026-07-09", "2026-07-10", "2026-07-11", "2026-07-12", "2026-07-13", "2026-07-14", "2026-07-15", "2026-07-16", "2026-07-17", "2026-07-18", "2026-07-19", "2026-07-20", "2026-07-21", "2026-07-22", "2026-07-23", "2026-07-24", "2026-07-25", "2026-07-26", "2026-07-27", "2026-07-28", "2026-07-29", "2026-07-30", "2026-07-31", "2026-08-01", "2026-08-02", "2026-08-03", "2026-08-04", "2026-08-05", "2026-08-06", "2026-08-07", "2026-08-08", "2026-08-09", "2026-08-10", "2026-08-11", "2026-08-12", "2026-08-13", "2026-08-14", "2026-08-15", "2026-08-16", "2026-08-17", "2026-08-18", "2026-08-19", "2026-08-20", "2026-08-21", "2026-08-22", "2026-08-23", "2026-08-24", "2026-08-25"];
+const loadMatrix = [{"machine": "\u0e02\u0e49\u0e2d\u0e15\u0e48\u0e2d-\u0e40\u0e01\u0e25\u0e35\u0e22\u0e27", "loads": [1108, 1108, 1051, 1059, 892, 1007, 1013, 916, 471, 568, 571, 571, 571, 668, 489, 585, 488, 488, 388, 388, 292, 192, 192, 95, 95, 95, 0, 0, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 197, 98, 98, 98, 98, 98, 98, 98, 0, 91, 91, 186, 186, 186, 186, 186, 186, 186, 186, 95, 192, 97, 97, 97, 97, 97, 97, 97, 97, 97, 97, 97, 97, 97, 97, 97, 97, 97, 97, 97, 97, 97, 97, 97, 97, 97, 97, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}, {"machine": "\u0e02\u0e49\u0e2d\u0e15\u0e48\u0e2d-\u0e25\u0e49\u0e32\u0e07", "loads": [0, 0, 7, 206, 367, 385, 456, 155, 596, 596, 292, 80, 80, 0, 181, 181, 168, 168, 247, 79, 172, 266, 186, 283, 283, 283, 378, 378, 188, 188, 188, 188, 188, 95, 95, 95, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 93, 93, 93, 93, 93, 93, 93, 187, 187, 94, 94, 0, 0, 0, 0, 0, 0, 0, 88, 88, 180, 180, 180, 92, 92, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 97, 97, 97, 97, 97, 97, 97, 97, 97, 97, 97, 97, 97]}, {"machine": "PA_EL01", "loads": [0, 0, 0, 434, 310, 95, 191, 203, 280, 373, 437, 437, 377, 377, 475, 568, 571, 667, 576, 576, 576, 383, 284, 197, 197, 197, 197, 100, 100, 193, 193, 193, 193, 193, 193, 94, 94, 94, 94, 94, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}, {"machine": "CU_HS04", "loads": [353, 353, 295, 295, 295, 295, 295, 295, 295, 295, 295, 295, 295, 295, 295, 295, 295, 295, 295, 295, 295, 295, 295, 295, 295, 295, 295, 295, 295, 295, 295, 295, 197, 197, 197, 197, 197, 98, 98, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}, {"machine": "\u0e02\u0e49\u0e2d\u0e15\u0e48\u0e2d-\u0e25\u0e1a\u0e04\u0e21", "loads": [0, 0, 164, 201, 258, 137, 188, 255, 281, 284, 184, 184, 184, 87, 87, 0, 0, 95, 95, 95, 95, 95, 95, 95, 95, 95, 95, 95, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 194, 194, 194, 194, 194, 194, 285, 188, 283, 283, 283, 283, 283, 283, 283, 283, 192, 192, 97, 97, 97, 97, 97, 97, 97, 97, 97, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}, {"machine": "\u0e02\u0e49\u0e2d\u0e15\u0e48\u0e2d-\u0e2d\u0e31\u0e14", "loads": [0, 339, 389, 455, 420, 284, 346, 364, 182, 95, 95, 95, 95, 95, 191, 191, 191, 97, 97, 97, 97, 97, 97, 97, 97, 97, 97, 97, 97, 97, 97, 97, 194, 194, 194, 194, 194, 285, 285, 381, 283, 186, 186, 186, 186, 186, 186, 95, 95, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}, {"machine": "CU_HS05", "loads": [888, 566, 348, 180, 180, 180, 93, 93, 93, 93, 93, 93, 93, 93, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}, {"machine": "RF_06", "loads": [255, 192, 98, 198, 198, 198, 251, 251, 198, 198, 95, 95, 95, 95, 95, 95, 95, 95, 95, 95, 95, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}, {"machine": "RF_07", "loads": [655, 623, 307, 164, 216, 214, 170, 85, 85, 0, 0, 0, 0, 0, 0, 0, 90, 90, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}, {"machine": "TA_A05", "loads": [0, 179, 304, 331, 195, 99, 181, 181, 99, 99, 99, 99, 99, 99, 99, 99, 174, 174, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}, {"machine": "CU_BL01", "loads": [656, 607, 503, 283, 187, 187, 97, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}, {"machine": "RF_05", "loads": [794, 766, 62, 0, 0, 68, 68, 68, 0, 134, 134, 135, 68, 68, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}, {"machine": "RF_08", "loads": [678, 429, 71, 0, 0, 0, 0, 0, 0, 0, 138, 229, 90, 86, 86, 166, 140, 60, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}, {"machine": "LO_R08+PA_M08", "loads": [0, 0, 19, 196, 411, 134, 0, 325, 236, 236, 155, 74, 74, 65, 0, 0, 68, 68, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}, {"machine": "TA_A04", "loads": [0, 0, 89, 223, 174, 177, 162, 162, 85, 68, 0, 0, 92, 145, 245, 99, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}, {"machine": "TA_M02", "loads": [0, 0, 0, 187, 187, 187, 187, 187, 187, 187, 96, 96, 96, 96, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}, {"machine": "PA_EL02", "loads": [0, 0, 0, 230, 183, 273, 259, 173, 173, 173, 81, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}, {"machine": "CH_A06", "loads": [0, 66, 51, 0, 0, 0, 0, 0, 0, 0, 96, 96, 96, 96, 96, 96, 96, 0, 0, 0, 0, 89, 89, 89, 89, 89, 89, 89, 89, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}, {"machine": "CH_A05", "loads": [0, 20, 147, 225, 149, 78, 0, 0, 41, 0, 84, 84, 258, 173, 84, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}, {"machine": "TA_A03", "loads": [0, 75, 407, 326, 0, 0, 0, 0, 0, 0, 0, 0, 0, 79, 79, 0, 0, 66, 130, 65, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}, {"machine": "TA_A06", "loads": [0, 31, 228, 224, 78, 174, 320, 0, 0, 0, 0, 54, 54, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}, {"machine": "LO_R02+PA_M02", "loads": [0, 126, 119, 0, 90, 145, 145, 0, 90, 90, 90, 0, 0, 0, 0, 0, 0, 0, 83, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}, {"machine": "LO_R06+PA_M06", "loads": [0, 0, 99, 72, 88, 0, 0, 0, 0, 0, 0, 0, 0, 0, 90, 166, 76, 0, 87, 148, 148, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}, {"machine": "CH_A02", "loads": [0, 31, 65, 22, 0, 0, 0, 52, 92, 92, 0, 0, 89, 89, 92, 92, 84, 84, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}, {"machine": "CH_A03", "loads": [0, 0, 310, 76, 76, 76, 0, 0, 0, 73, 73, 73, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}, {"machine": "RF_04", "loads": [347, 118, 67, 0, 63, 63, 0, 0, 0, 0, 0, 0, 0, 0, 0, 50, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}, {"machine": "TA_M_ELBOW_01", "loads": [0, 0, 0, 98, 52, 208, 156, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}, {"machine": "BE_M01", "loads": [0, 150, 208, 156, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}, {"machine": "TA_M01", "loads": [0, 0, 353, 74, 74, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}, {"machine": "CH_ELBOW01", "loads": [0, 0, 65, 69, 208, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}, {"machine": "LO_R05+PA_M05", "loads": [0, 0, 76, 24, 100, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}, {"machine": "LO_R01+PA_M01", "loads": [0, 5, 0, 0, 55, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 32, 0, 68, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}];
+const routeData = [{"route": "FDP-FULL", "jobs": 22, "tons": 21.6}, {"route": "IMC-THREAD", "jobs": 18, "tons": 413.6}, {"route": "ZIGA-THREAD", "jobs": 16, "tons": 630.9}, {"route": "FDP-THREAD-ONLY", "jobs": 13, "tons": 0.0}, {"route": "ZIGA-NOTHREAD", "jobs": 10, "tons": 282.3}, {"route": "BOW-DAIWA-I", "jobs": 8, "tons": 12.7}, {"route": "ZUPER-THREAD", "jobs": 8, "tons": 119.7}, {"route": "RSC-THREAD", "jobs": 8, "tons": 40.8}, {"route": "EMT-STD", "jobs": 5, "tons": 338.6}, {"route": "HZO-THREAD", "jobs": 4, "tons": 139.7}, {"route": "HZO-NOTHREAD", "jobs": 3, "tons": 82.8}, {"route": "ZUPER-NOTHREAD", "jobs": 3, "tons": 16.5}];
+const eomData = [{"JobNo": "OFM26-00113", "Route": "HZO-NOTHREAD", "Brand": "HZO", "Wt_kg": 42900.0, "StartDay": "2026-05-10", "EndDay": "2026-05-11", "EOM_Status": "FG"}, {"JobNo": "OFM26-00190", "Route": "HZO-NOTHREAD", "Brand": "HZO", "Wt_kg": 12625.0, "StartDay": "2026-05-10", "EndDay": "2026-05-11", "EOM_Status": "FG"}, {"JobNo": "OFM26-00218", "Route": "ZUPER-NOTHREAD", "Brand": null, "Wt_kg": 2542.0, "StartDay": "2026-05-10", "EndDay": "2026-05-11", "EOM_Status": "FG"}, {"JobNo": "OFM26-00154", "Route": "ZIGA-NOTHREAD", "Brand": "ZIGA", "Wt_kg": 8100.0, "StartDay": "2026-05-10", "EndDay": "2026-05-12", "EOM_Status": "FG"}, {"JobNo": "OFM26-00188", "Route": "HZO-THREAD", "Brand": "HZO", "Wt_kg": 12625.0, "StartDay": "2026-05-10", "EndDay": "2026-05-12", "EOM_Status": "FG"}, {"JobNo": "OFM26-00264", "Route": "ZIGA-THREAD", "Brand": "ZIGA", "Wt_kg": 7400.0, "StartDay": "2026-05-10", "EndDay": "2026-05-12", "EOM_Status": "FG"}, {"JobNo": "OFM26-00294", "Route": "ZUPER-THREAD", "Brand": "Zuper ZIGA", "Wt_kg": 1470.0, "StartDay": "2026-05-10", "EndDay": "2026-05-12", "EOM_Status": "FG"}, {"JobNo": "OFM26-00297", "Route": "ZIGA-THREAD", "Brand": "ZIGA", "Wt_kg": 21300.0, "StartDay": "2026-05-10", "EndDay": "2026-05-12", "EOM_Status": "FG"}, {"JobNo": "OFM26-00300", "Route": "ZUPER-NOTHREAD", "Brand": "Zuper ZIGA", "Wt_kg": 0.0, "StartDay": "2026-05-10", "EndDay": "2026-05-12", "EOM_Status": "FG"}, {"JobNo": "ORW26-00046", "Route": "FDP-THREAD-ONLY", "Brand": "DAIWA", "Wt_kg": 0.0, "StartDay": "2026-05-10", "EndDay": "2026-05-12", "EOM_Status": "FG"}, {"JobNo": "ORW26-00058", "Route": "ZUPER-THREAD", "Brand": "Zuper ZIGA", "Wt_kg": 2079.0, "StartDay": "2026-05-10", "EndDay": "2026-05-12", "EOM_Status": "FG"}, {"JobNo": "ORW26-00104", "Route": "ZUPER-THREAD", "Brand": "Zuper ZIGA", "Wt_kg": 2650.0, "StartDay": "2026-05-10", "EndDay": "2026-05-12", "EOM_Status": "FG"}, {"JobNo": "SSP2600001", "Route": "ZIGA-NOTHREAD", "Brand": "ZIGA", "Wt_kg": 4575.0, "StartDay": "2026-05-10", "EndDay": "2026-05-12", "EOM_Status": "FG"}, {"JobNo": "OFM26-00237", "Route": "EMT-STD", "Brand": "DAIWA", "Wt_kg": 11250.0, "StartDay": "2026-05-10", "EndDay": "2026-05-13", "EOM_Status": "FG"}, {"JobNo": "OFM26-00243", "Route": "ZUPER-THREAD", "Brand": "Zuper ZIGA", "Wt_kg": 9120.0, "StartDay": "2026-05-10", "EndDay": "2026-05-13", "EOM_Status": "FG"}, {"JobNo": "OFM26-00256", "Route": "ZIGA-NOTHREAD", "Brand": "ZIGA", "Wt_kg": 6660.0, "StartDay": "2026-05-10", "EndDay": "2026-05-13", "EOM_Status": "FG"}, {"JobNo": "OFM26-00278", "Route": "HZO-NOTHREAD", "Brand": "HZO", "Wt_kg": 27300.0, "StartDay": "2026-05-10", "EndDay": "2026-05-13", "EOM_Status": "FG"}, {"JobNo": "OFM26-00282", "Route": "ZIGA-THREAD", "Brand": "ZIGA", "Wt_kg": 34650.0, "StartDay": "2026-05-10", "EndDay": "2026-05-13", "EOM_Status": "FG"}, {"JobNo": "ORW26-00013", "Route": "IMC-THREAD", "Brand": "DAIWA", "Wt_kg": 768.0, "StartDay": "2026-05-10", "EndDay": "2026-05-13", "EOM_Status": "FG"}, {"JobNo": "ORW26-00022", "Route": "RSC-THREAD", "Brand": "DAIWA", "Wt_kg": 2293.0, "StartDay": "2026-05-10", "EndDay": "2026-05-13", "EOM_Status": "FG"}, {"JobNo": "ORW26-00023", "Route": "RSC-THREAD", "Brand": "DAIWA", "Wt_kg": 3100.0, "StartDay": "2026-05-10", "EndDay": "2026-05-13", "EOM_Status": "FG"}, {"JobNo": "ORW26-00039", "Route": "IMC-THREAD", "Brand": "DAIWA", "Wt_kg": 440.0, "StartDay": "2026-05-10", "EndDay": "2026-05-13", "EOM_Status": "FG"}, {"JobNo": "ORW26-00053", "Route": "IMC-THREAD", "Brand": "DAIWA", "Wt_kg": 2461.0, "StartDay": "2026-05-10", "EndDay": "2026-05-13", "EOM_Status": "FG"}, {"JobNo": "ORW26-00059", "Route": "RSC-THREAD", "Brand": "DAIWA", "Wt_kg": 930.0, "StartDay": "2026-05-10", "EndDay": "2026-05-13", "EOM_Status": "FG"}, {"JobNo": "ORW26-00060", "Route": "RSC-THREAD", "Brand": "DAIWA", "Wt_kg": 2150.0, "StartDay": "2026-05-10", "EndDay": "2026-05-13", "EOM_Status": "FG"}, {"JobNo": "ORW26-00111", "Route": "IMC-THREAD", "Brand": "DAIWA", "Wt_kg": 0.0, "StartDay": "2026-05-10", "EndDay": "2026-05-13", "EOM_Status": "FG"}, {"JobNo": "OFM26-00232", "Route": "ZUPER-THREAD", "Brand": "Zuper ZIGA", "Wt_kg": 39400.0, "StartDay": "2026-05-10", "EndDay": "2026-05-14", "EOM_Status": "FG"}, {"JobNo": "OFM26-00242", "Route": "ZUPER-THREAD", "Brand": "Zuper ZIGA", "Wt_kg": 25000.0, "StartDay": "2026-05-10", "EndDay": "2026-05-14", "EOM_Status": "FG"}, {"JobNo": "OFM26-00255", "Route": "ZUPER-THREAD", "Brand": "Zuper ZIGA", "Wt_kg": 18240.0, "StartDay": "2026-05-10", "EndDay": "2026-05-14", "EOM_Status": "FG"}, {"JobNo": "OFM26-00257", "Route": "ZIGA-NOTHREAD", "Brand": "ZIGA", "Wt_kg": 11130.0, "StartDay": "2026-05-11", "EndDay": "2026-05-14", "EOM_Status": "FG"}, {"JobNo": "OFM26-00261", "Route": "ZIGA-NOTHREAD", "Brand": "ZIGA", "Wt_kg": 18000.0, "StartDay": "2026-05-10", "EndDay": "2026-05-14", "EOM_Status": "FG"}, {"JobNo": "OFM26-00265", "Route": "ZIGA-THREAD", "Brand": "ZIGA", "Wt_kg": 27600.0, "StartDay": "2026-05-10", "EndDay": "2026-05-14", "EOM_Status": "FG"}, {"JobNo": "OFM26-00274", "Route": "RSC-THREAD", "Brand": "DAIWA", "Wt_kg": 5445.0, "StartDay": "2026-05-11", "EndDay": "2026-05-14", "EOM_Status": "FG"}, {"JobNo": "OFM26-00290", "Route": "ZIGA-THREAD", "Brand": "ZIGA", "Wt_kg": 27120.0, "StartDay": "2026-05-10", "EndDay": "2026-05-14", "EOM_Status": "FG"}, {"JobNo": "OFM26-00291", "Route": "ZIGA-THREAD", "Brand": "ZIGA", "Wt_kg": 28600.0, "StartDay": "2026-05-11", "EndDay": "2026-05-14", "EOM_Status": "FG"}, {"JobNo": "ORW26-00025", "Route": "IMC-THREAD", "Brand": "DAIWA", "Wt_kg": 3700.0, "StartDay": "2026-05-10", "EndDay": "2026-05-14", "EOM_Status": "FG"}, {"JobNo": "ORW26-00048", "Route": "FDP-THREAD-ONLY", "Brand": "DAIWA", "Wt_kg": 0.0, "StartDay": "2026-05-10", "EndDay": "2026-05-14", "EOM_Status": "FG"}, {"JobNo": "ORW26-00054", "Route": "BOW-DAIWA-I", "Brand": "DAIWA", "Wt_kg": 720.0, "StartDay": "2026-05-10", "EndDay": "2026-05-14", "EOM_Status": "FG"}, {"JobNo": "ORW26-00062", "Route": "FDP-THREAD-ONLY", "Brand": "DAIWA", "Wt_kg": 0.0, "StartDay": "2026-05-10", "EndDay": "2026-05-14", "EOM_Status": "FG"}, {"JobNo": "ORW26-00064", "Route": "FDP-THREAD-ONLY", "Brand": "DAIWA", "Wt_kg": 0.0, "StartDay": "2026-05-10", "EndDay": "2026-05-14", "EOM_Status": "FG"}, {"JobNo": "ORW26-00076", "Route": "BOW-DAIWA-I", "Brand": "DAIWA", "Wt_kg": 29.0, "StartDay": "2026-05-10", "EndDay": "2026-05-14", "EOM_Status": "FG"}, {"JobNo": "ORW26-00078", "Route": "RSC-THREAD", "Brand": "DAIWA", "Wt_kg": 6879.0, "StartDay": "2026-05-10", "EndDay": "2026-05-14", "EOM_Status": "FG"}, {"JobNo": "ORW26-00081", "Route": "BOW-DAIWA-I", "Brand": "DAIWA", "Wt_kg": 242.0, "StartDay": "2026-05-10", "EndDay": "2026-05-14", "EOM_Status": "FG"}, {"JobNo": "ORW26-00082", "Route": "BOW-DAIWA-I", "Brand": "DAIWA", "Wt_kg": 1064.0, "StartDay": "2026-05-10", "EndDay": "2026-05-14", "EOM_Status": "FG"}, {"JobNo": "ORW26-00110", "Route": "IMC-THREAD", "Brand": "DAIWA", "Wt_kg": 0.0, "StartDay": "2026-05-10", "EndDay": "2026-05-14", "EOM_Status": "FG"}, {"JobNo": "OFM26-00260", "Route": "ZIGA-THREAD", "Brand": "ZIGA", "Wt_kg": 50325.0, "StartDay": "2026-05-10", "EndDay": "2026-05-15", "EOM_Status": "FG"}, {"JobNo": "OFM26-00276", "Route": "HZO-THREAD", "Brand": "HZO", "Wt_kg": 44000.0, "StartDay": "2026-05-10", "EndDay": "2026-05-15", "EOM_Status": "FG"}, {"JobNo": "ORW26-00009", "Route": "FDP-FULL", "Brand": "DAIWA", "Wt_kg": 30.0, "StartDay": "2026-05-10", "EndDay": "2026-05-15", "EOM_Status": "FG"}, {"JobNo": "ORW26-00079", "Route": "RSC-THREAD", "Brand": "DAIWA", "Wt_kg": 9300.0, "StartDay": "2026-05-10", "EndDay": "2026-05-15", "EOM_Status": "FG"}, {"JobNo": "OFM26-00126", "Route": "ZIGA-THREAD", "Brand": "ZIGA", "Wt_kg": 81000.0, "StartDay": "2026-05-10", "EndDay": "2026-05-16", "EOM_Status": "FG"}, {"JobNo": "OFM26-00189", "Route": "HZO-THREAD", "Brand": "HZO", "Wt_kg": 52800.0, "StartDay": "2026-05-12", "EndDay": "2026-05-16", "EOM_Status": "FG"}, {"JobNo": "OFM26-00259", "Route": "IMC-THREAD", "Brand": "DAIWA", "Wt_kg": 13400.0, "StartDay": "2026-05-10", "EndDay": "2026-05-16", "EOM_Status": "FG"}, {"JobNo": "ORW26-00043", "Route": "FDP-FULL", "Brand": "DAIWA", "Wt_kg": 319.0, "StartDay": "2026-05-10", "EndDay": "2026-05-16", "EOM_Status": "FG"}, {"JobNo": "ORW26-00055", "Route": "FDP-THREAD-ONLY", "Brand": "DAIWA", "Wt_kg": 0.0, "StartDay": "2026-05-10", "EndDay": "2026-05-16", "EOM_Status": "FG"}, {"JobNo": "ORW26-00072", "Route": "FDP-THREAD-ONLY", "Brand": "DAIWA", "Wt_kg": 0.0, "StartDay": "2026-05-10", "EndDay": "2026-05-16", "EOM_Status": "FG"}, {"JobNo": "ORW26-00086", "Route": "FDP-THREAD-ONLY", "Brand": "DAIWA", "Wt_kg": 0.0, "StartDay": "2026-05-10", "EndDay": "2026-05-16", "EOM_Status": "FG"}, {"JobNo": "ORW26-00088", "Route": "FDP-THREAD-ONLY", "Brand": "DAIWA", "Wt_kg": 0.0, "StartDay": "2026-05-10", "EndDay": "2026-05-16", "EOM_Status": "FG"}, {"JobNo": "ORW26-00093", "Route": "FDP-THREAD-ONLY", "Brand": "DAIWA", "Wt_kg": 0.0, "StartDay": "2026-05-10", "EndDay": "2026-05-16", "EOM_Status": "FG"}, {"JobNo": "ORW26-00105", "Route": "BOW-DAIWA-I", "Brand": "DAIWA", "Wt_kg": 900.0, "StartDay": "2026-05-10", "EndDay": "2026-05-16", "EOM_Status": "FG"}, {"JobNo": "OFM26-00258", "Route": "ZIGA-THREAD", "Brand": "ZIGA", "Wt_kg": 17500.0, "StartDay": "2026-05-14", "EndDay": "2026-05-17", "EOM_Status": "FG"}, {"JobNo": "OFM26-00263", "Route": "ZIGA-THREAD", "Brand": "ZIGA", "Wt_kg": 19600.0, "StartDay": "2026-05-14", "EndDay": "2026-05-17", "EOM_Status": "FG"}, {"JobNo": "ORW26-00068", "Route": "FDP-THREAD-ONLY", "Brand": "DAIWA", "Wt_kg": 0.0, "StartDay": "2026-05-10", "EndDay": "2026-05-17", "EOM_Status": "FG"}, {"JobNo": "ORW26-00106", "Route": "BOW-DAIWA-I", "Brand": "DAIWA", "Wt_kg": 2000.0, "StartDay": "2026-05-10", "EndDay": "2026-05-17", "EOM_Status": "FG"}, {"JobNo": "ORW26-00107", "Route": "BOW-DAIWA-I", "Brand": "DAIWA", "Wt_kg": 3000.0, "StartDay": "2026-05-10", "EndDay": "2026-05-17", "EOM_Status": "FG"}, {"JobNo": "ORW26-00108", "Route": "BOW-DAIWA-I", "Brand": "DAIWA", "Wt_kg": 4750.0, "StartDay": "2026-05-10", "EndDay": "2026-05-17", "EOM_Status": "FG"}, {"JobNo": "OFM26-00226", "Route": "EMT-STD", "Brand": "DAIWA", "Wt_kg": 42750.0, "StartDay": "2026-05-10", "EndDay": "2026-05-19", "EOM_Status": "FG"}, {"JobNo": "OFM26-00272", "Route": "IMC-THREAD", "Brand": "DAIWA", "Wt_kg": 24120.0, "StartDay": "2026-05-10", "EndDay": "2026-05-19", "EOM_Status": "FG"}, {"JobNo": "OFM26-00283", "Route": "ZIGA-NOTHREAD", "Brand": "ZIGA", "Wt_kg": 26790.0, "StartDay": "2026-05-15", "EndDay": "2026-05-19", "EOM_Status": "FG"}, {"JobNo": "OFM26-00288", "Route": "ZIGA-THREAD", "Brand": "ZIGA", "Wt_kg": 52640.0, "StartDay": "2026-05-12", "EndDay": "2026-05-19", "EOM_Status": "FG"}, {"JobNo": "ORW26-00049", "Route": "FDP-FULL", "Brand": "DAIWA", "Wt_kg": 671.0, "StartDay": "2026-05-10", "EndDay": "2026-05-19", "EOM_Status": "FG"}, {"JobNo": "ORW26-00056", "Route": "FDP-FULL", "Brand": "DAIWA", "Wt_kg": 623.0, "StartDay": "2026-05-10", "EndDay": "2026-05-19", "EOM_Status": "FG"}, {"JobNo": "ORW26-00063", "Route": "FDP-FULL", "Brand": "DAIWA", "Wt_kg": 671.0, "StartDay": "2026-05-10", "EndDay": "2026-05-19", "EOM_Status": "FG"}, {"JobNo": "ORW26-00065", "Route": "FDP-FULL", "Brand": "DAIWA", "Wt_kg": 671.0, "StartDay": "2026-05-10", "EndDay": "2026-05-19", "EOM_Status": "FG"}, {"JobNo": "ORW26-00069", "Route": "FDP-THREAD-ONLY", "Brand": "DAIWA", "Wt_kg": 0.0, "StartDay": "2026-05-10", "EndDay": "2026-05-19", "EOM_Status": "FG"}, {"JobNo": "ORW26-00087", "Route": "FDP-FULL", "Brand": "DAIWA", "Wt_kg": 0.0, "StartDay": "2026-05-10", "EndDay": "2026-05-19", "EOM_Status": "FG"}, {"JobNo": "OFM26-00157", "Route": "ZIGA-THREAD", "Brand": "ZIGA", "Wt_kg": 92000.0, "StartDay": "2026-05-14", "EndDay": "2026-05-20", "EOM_Status": "FG"}, {"JobNo": "OFM26-00262", "Route": "ZIGA-THREAD", "Brand": "ZIGA", "Wt_kg": 50400.0, "StartDay": "2026-05-10", "EndDay": "2026-05-20", "EOM_Status": "FG"}, {"JobNo": "OFM26-00298", "Route": "IMC-THREAD", "Brand": "DAIWA", "Wt_kg": 25000.0, "StartDay": "2026-05-10", "EndDay": "2026-05-20", "EOM_Status": "FG"}, {"JobNo": "ORW26-00001", "Route": "FDP-FULL", "Brand": "DAIWA", "Wt_kg": 294.0, "StartDay": "2026-05-10", "EndDay": "2026-05-20", "EOM_Status": "FG"}, {"JobNo": "ORW26-00017", "Route": "FDP-FULL", "Brand": "DAIWA", "Wt_kg": 294.0, "StartDay": "2026-05-10", "EndDay": "2026-05-20", "EOM_Status": "FG"}, {"JobNo": "ORW26-00074", "Route": "FDP-FULL", "Brand": "DAIWA", "Wt_kg": 638.0, "StartDay": "2026-05-10", "EndDay": "2026-05-20", "EOM_Status": "FG"}, {"JobNo": "OFM26-00275", "Route": "RSC-THREAD", "Brand": "DAIWA", "Wt_kg": 10750.0, "StartDay": "2026-05-16", "EndDay": "2026-05-21", "EOM_Status": "FG"}, {"JobNo": "OFM26-00287", "Route": "ZIGA-NOTHREAD", "Brand": "ZIGA", "Wt_kg": 59280.0, "StartDay": "2026-05-15", "EndDay": "2026-05-22", "EOM_Status": "FG"}, {"JobNo": "ORW26-00073", "Route": "FDP-FULL", "Brand": "DAIWA", "Wt_kg": 1173.0, "StartDay": "2026-05-10", "EndDay": "2026-05-22", "EOM_Status": "FG"}, {"JobNo": "OFM26-00281", "Route": "ZIGA-THREAD", "Brand": "ZIGA", "Wt_kg": 27360.0, "StartDay": "2026-05-19", "EndDay": "2026-05-23", "EOM_Status": "FG"}, {"JobNo": "OFM26-00200", "Route": "IMC-THREAD", "Brand": "DAIWA", "Wt_kg": 24000.0, "StartDay": "2026-05-10", "EndDay": "2026-05-24", "EOM_Status": "FG"}, {"JobNo": "OFM26-00227", "Route": "IMC-THREAD", "Brand": "DAIWA", "Wt_kg": 25830.0, "StartDay": "2026-05-10", "EndDay": "2026-05-24", "EOM_Status": "FG"}, {"JobNo": "OFM26-00286", "Route": "ZIGA-NOTHREAD", "Brand": "ZIGA", "Wt_kg": 45000.0, "StartDay": "2026-05-19", "EndDay": "2026-05-25", "EOM_Status": "FG"}, {"JobNo": "OFM26-00299", "Route": "IMC-THREAD", "Brand": "DAIWA", "Wt_kg": 45000.0, "StartDay": "2026-05-10", "EndDay": "2026-05-25", "EOM_Status": "FG"}, {"JobNo": "ORW26-00070", "Route": "FDP-FULL", "Brand": "DAIWA", "Wt_kg": 1098.0, "StartDay": "2026-05-10", "EndDay": "2026-05-25", "EOM_Status": "FG"}, {"JobNo": "OFM26-00280", "Route": "ZIGA-THREAD", "Brand": "ZIGA", "Wt_kg": 57150.0, "StartDay": "2026-05-21", "EndDay": "2026-05-26", "EOM_Status": "FG"}, {"JobNo": "OFM26-00209", "Route": "IMC-THREAD", "Brand": "DAIWA", "Wt_kg": 49500.0, "StartDay": "2026-05-10", "EndDay": "2026-05-27", "EOM_Status": "FG"}, {"JobNo": "OFM26-00270", "Route": "IMC-THREAD", "Brand": "DAIWA", "Wt_kg": 17550.0, "StartDay": "2026-05-20", "EndDay": "2026-05-27", "EOM_Status": "FG"}, {"JobNo": "OFM26-00285", "Route": "ZIGA-NOTHREAD", "Brand": "ZIGA", "Wt_kg": 39000.0, "StartDay": "2026-05-21", "EndDay": "2026-05-27", "EOM_Status": "FG"}, {"JobNo": "OFM26-00277", "Route": "HZO-THREAD", "Brand": "HZO", "Wt_kg": 30300.0, "StartDay": "2026-05-25", "EndDay": "2026-05-28", "EOM_Status": "FG"}, {"JobNo": "OFM26-00293", "Route": "ZUPER-NOTHREAD", "Brand": "Zuper ZIGA", "Wt_kg": 13970.0, "StartDay": "2026-05-26", "EndDay": "2026-05-28", "EOM_Status": "FG"}, {"JobNo": "ORW26-00071", "Route": "FDP-FULL", "Brand": "DAIWA", "Wt_kg": 1387.0, "StartDay": "2026-05-10", "EndDay": "2026-05-28", "EOM_Status": "FG"}, {"JobNo": "ORW26-00099", "Route": "FDP-FULL", "Brand": "DAIWA", "Wt_kg": 1483.0, "StartDay": "2026-05-10", "EndDay": "2026-05-28", "EOM_Status": "FG"}, {"JobNo": "OFM26-00267", "Route": "EMT-STD", "Brand": "DAIWA", "Wt_kg": 91500.0, "StartDay": "2026-05-13", "EndDay": "2026-05-30", "EOM_Status": "FG"}, {"JobNo": "OFM26-00271", "Route": "IMC-THREAD", "Brand": "DAIWA", "Wt_kg": 30500.0, "StartDay": "2026-05-20", "EndDay": "2026-05-30", "EOM_Status": "FG"}, {"JobNo": "OFM26-00284", "Route": "ZIGA-NOTHREAD", "Brand": "ZIGA", "Wt_kg": 63800.0, "StartDay": "2026-05-23", "EndDay": "2026-05-30", "EOM_Status": "FG"}, {"JobNo": "OFM26-00289", "Route": "ZIGA-THREAD", "Brand": "ZIGA", "Wt_kg": 36210.0, "StartDay": "2026-05-25", "EndDay": "2026-05-30", "EOM_Status": "FG"}, {"JobNo": "OFM26-00292", "Route": "ZUPER-THREAD", "Brand": "Zuper ZIGA", "Wt_kg": 21750.0, "StartDay": "2026-05-26", "EndDay": "2026-05-30", "EOM_Status": "FG"}, {"JobNo": "OFM26-00273", "Route": "IMC-THREAD", "Brand": "DAIWA", "Wt_kg": 43050.0, "StartDay": "2026-05-10", "EndDay": "2026-05-31", "EOM_Status": "FG"}, {"JobNo": "ORW26-00075", "Route": "FDP-FULL", "Brand": "DAIWA", "Wt_kg": 762.0, "StartDay": "2026-05-10", "EndDay": "2026-05-31", "EOM_Status": "FG"}, {"JobNo": "OFM26-00269", "Route": "IMC-THREAD", "Brand": "DAIWA", "Wt_kg": 43500.0, "StartDay": "2026-05-16", "EndDay": "2026-06-01", "EOM_Status": "WIP"}, {"JobNo": "OFM26-00223", "Route": "EMT-STD", "Brand": "DAIWA", "Wt_kg": 93600.0, "StartDay": "2026-05-10", "EndDay": "2026-06-05", "EOM_Status": "WIP"}, {"JobNo": "ORW26-00097", "Route": "FDP-FULL", "Brand": "DAIWA", "Wt_kg": 1101.0, "StartDay": "2026-05-10", "EndDay": "2026-06-06", "EOM_Status": "WIP"}, {"JobNo": "ORW26-00100", "Route": "FDP-THREAD-ONLY", "Brand": "DAIWA", "Wt_kg": 0.0, "StartDay": "2026-05-10", "EndDay": "2026-06-06", "EOM_Status": "WIP"}, {"JobNo": "ORW26-00102", "Route": "FDP-THREAD-ONLY", "Brand": "DAIWA", "Wt_kg": 0.0, "StartDay": "2026-05-10", "EndDay": "2026-06-11", "EOM_Status": "WIP"}, {"JobNo": "OFM26-00207", "Route": "IMC-THREAD", "Brand": "DAIWA", "Wt_kg": 64750.0, "StartDay": "2026-05-10", "EndDay": "2026-06-13", "EOM_Status": "WIP"}, {"JobNo": "ORW26-00098", "Route": "FDP-FULL", "Brand": "DAIWA", "Wt_kg": 1307.0, "StartDay": "2026-05-10", "EndDay": "2026-06-14", "EOM_Status": "WIP"}, {"JobNo": "OFM26-00266", "Route": "EMT-STD", "Brand": "DAIWA", "Wt_kg": 99450.0, "StartDay": "2026-05-20", "EndDay": "2026-06-18", "EOM_Status": "WIP"}, {"JobNo": "ORW26-00096", "Route": "FDP-FULL", "Brand": "DAIWA", "Wt_kg": 1999.0, "StartDay": "2026-05-10", "EndDay": "2026-07-06", "EOM_Status": "WIP"}, {"JobNo": "ORW26-00080", "Route": "FDP-FULL", "Brand": "DAIWA", "Wt_kg": 900.0, "StartDay": "2026-05-10", "EndDay": "2026-07-08", "EOM_Status": "WIP"}, {"JobNo": "ORW26-00077", "Route": "FDP-FULL", "Brand": "DAIWA", "Wt_kg": 1049.0, "StartDay": "2026-05-10", "EndDay": "2026-07-20", "EOM_Status": "WIP"}, {"JobNo": "ORW26-00057", "Route": "FDP-FULL", "Brand": "DAIWA", "Wt_kg": 1097.0, "StartDay": "2026-05-10", "EndDay": "2026-07-22", "EOM_Status": "WIP"}, {"JobNo": "ORW26-00095", "Route": "FDP-FULL", "Brand": "DAIWA", "Wt_kg": 4010.0, "StartDay": "2026-05-10", "EndDay": "2026-08-25", "EOM_Status": "WIP"}];
+const scheduleData = [{"JobNo": "OFM26-00113", "Route": "HZO-NOTHREAD", "OpSeq": 1, "Op": "RF", "Brand": "HZO", "Size": "4\"", "Thickness": 4.0, "Qty_lines": 650.0, "Wt_kg": 42900.0, "PrimaryMachine": "RF_04", "ActualMachine": "RF_04", "CapPerDay": 1200.0, "TotalMin": 260.0, "StartDay": "2026-05-10", "EndDay": "2026-05-10", "DaysSpan": 1}, {"JobNo": "OFM26-00126", "Route": "ZIGA-THREAD", "OpSeq": 1, "Op": "RF", "Brand": "ZIGA", "Size": "4\"", "Thickness": 2.5, "Qty_lines": 2000.0, "Wt_kg": 81000.0, "PrimaryMachine": "RF_04", "ActualMachine": "RF_04", "CapPerDay": 1584.0, "TotalMin": 606.1, "StartDay": "2026-05-10", "EndDay": "2026-05-11", "DaysSpan": 2}, {"JobNo": "OFM26-00154", "Route": "ZIGA-NOTHREAD", "OpSeq": 1, "Op": "RF", "Brand": "ZIGA", "Size": "4\"", "Thickness": 2.5, "Qty_lines": 200.0, "Wt_kg": 8100.0, "PrimaryMachine": "RF_04", "ActualMachine": "RF_04", "CapPerDay": 1584.0, "TotalMin": 60.6, "StartDay": "2026-05-10", "EndDay": "2026-05-10", "DaysSpan": 1}, {"JobNo": "OFM26-00188", "Route": "HZO-THREAD", "OpSeq": 1, "Op": "RF", "Brand": "HZO", "Size": "3\"", "Thickness": 4.0, "Qty_lines": 250.0, "Wt_kg": 12625.0, "PrimaryMachine": "RF_04", "ActualMachine": "RF_04", "CapPerDay": 1200.0, "TotalMin": 100.0, "StartDay": "2026-05-10", "EndDay": "2026-05-10", "DaysSpan": 1}, {"JobNo": "OFM26-00190", "Route": "HZO-NOTHREAD", "OpSeq": 1, "Op": "RF", "Brand": "HZO", "Size": "3\"", "Thickness": 4.0, "Qty_lines": 250.0, "Wt_kg": 12625.0, "PrimaryMachine": "RF_04", "ActualMachine": "RF_04", "CapPerDay": 1200.0, "TotalMin": 100.0, "StartDay": "2026-05-10", "EndDay": "2026-05-10", "DaysSpan": 1}, {"JobNo": "OFM26-00200", "Route": "IMC-THREAD", "OpSeq": 1, "Op": "RF", "Brand": "DAIWA", "Size": "4\"", "Thickness": 2.8, "Qty_lines": 1000.0, "Wt_kg": 24000.0, "PrimaryMachine": "RF_04", "ActualMachine": "RF_04", "CapPerDay": 3216.0, "TotalMin": 149.3, "StartDay": "2026-05-10", "EndDay": "2026-05-10", "DaysSpan": 1}, {"JobNo": "OFM26-00207", "Route": "IMC-THREAD", "OpSeq": 1, "Op": "RF", "Brand": "DAIWA", "Size": "3\"", "Thickness": 2.8, "Qty_lines": 3500.0, "Wt_kg": 64750.0, "PrimaryMachine": "RF_04", "ActualMachine": "RF_04", "CapPerDay": 3216.0, "TotalMin": 522.4, "StartDay": "2026-05-10", "EndDay": "2026-05-11", "DaysSpan": 2}, {"JobNo": "OFM26-00209", "Route": "IMC-THREAD", "OpSeq": 1, "Op": "RF", "Brand": "DAIWA", "Size": "1\"", "Thickness": 1.9, "Qty_lines": 11000.0, "Wt_kg": 49500.0, "PrimaryMachine": "RF_08", "ActualMachine": "RF_08", "CapPerDay": 8016.0, "TotalMin": 1018.7, "StartDay": "2026-05-10", "EndDay": "2026-05-12", "DaysSpan": 3}, {"JobNo": "OFM26-00218", "Route": "ZUPER-NOTHREAD", "OpSeq": 1, "Op": "RF", "Brand": null, "Size": "3\"", "Thickness": 3.2, "Qty_lines": 62.0, "Wt_kg": 2542.0, "PrimaryMachine": "RF_04", "ActualMachine": "RF_04", "CapPerDay": 3216.0, "TotalMin": 9.3, "StartDay": "2026-05-10", "EndDay": "2026-05-10", "DaysSpan": 1}, {"JobNo": "OFM26-00223", "Route": "EMT-STD", "OpSeq": 1, "Op": "RF", "Brand": "DAIWA", "Size": "1/2\"", "Thickness": 0.9, "Qty_lines": 80000.0, "Wt_kg": 93600.0, "PrimaryMachine": "RF_06", "ActualMachine": "RF_06", "CapPerDay": 8798.4, "TotalMin": 4724.4, "StartDay": "2026-05-10", "EndDay": "2026-05-19", "DaysSpan": 10}, {"JobNo": "OFM26-00226", "Route": "EMT-STD", "OpSeq": 1, "Op": "RF", "Brand": "DAIWA", "Size": "1\"", "Thickness": 1.35, "Qty_lines": 15000.0, "Wt_kg": 42750.0, "PrimaryMachine": "RF_07", "ActualMachine": "RF_07", "CapPerDay": 8016.0, "TotalMin": 1258.2, "StartDay": "2026-05-10", "EndDay": "2026-05-12", "DaysSpan": 3}, {"JobNo": "OFM26-00227", "Route": "IMC-THREAD", "OpSeq": 1, "Op": "RF", "Brand": "DAIWA", "Size": "2\"", "Thickness": 1.95, "Qty_lines": 3000.0, "Wt_kg": 25830.0, "PrimaryMachine": "RF_05", "ActualMachine": "RF_05", "CapPerDay": 6384.0, "TotalMin": 585.6, "StartDay": "2026-05-10", "EndDay": "2026-05-11", "DaysSpan": 2}, {"JobNo": "OFM26-00232", "Route": "ZUPER-THREAD", "OpSeq": 1, "Op": "RF", "Brand": "Zuper ZIGA", "Size": "2\"", "Thickness": 2.3, "Qty_lines": 2000.0, "Wt_kg": 39400.0, "PrimaryMachine": "RF_05", "ActualMachine": "RF_05", "CapPerDay": 2001.6, "TotalMin": 839.6, "StartDay": "2026-05-10", "EndDay": "2026-05-11", "DaysSpan": 2}, {"JobNo": "OFM26-00237", "Route": "EMT-STD", "OpSeq": 1, "Op": "RF", "Brand": "DAIWA", "Size": "1-1/2\"", "Thickness": 1.35, "Qty_lines": 2500.0, "Wt_kg": 11250.0, "PrimaryMachine": "RF_07", "ActualMachine": "RF_07", "CapPerDay": 6384.0, "TotalMin": 548.0, "StartDay": "2026-05-10", "EndDay": "2026-05-11", "DaysSpan": 2}, {"JobNo": "OFM26-00242", "Route": "ZUPER-THREAD", "OpSeq": 1, "Op": "RF", "Brand": "Zuper ZIGA", "Size": "1\"", "Thickness": 2.8, "Qty_lines": 2000.0, "Wt_kg": 25000.0, "PrimaryMachine": "RF_08", "ActualMachine": "RF_08", "CapPerDay": 2400.0, "TotalMin": 760.0, "StartDay": "2026-05-10", "EndDay": "2026-05-11", "DaysSpan": 2}, {"JobNo": "OFM26-00243", "Route": "ZUPER-THREAD", "OpSeq": 1, "Op": "RF", "Brand": "Zuper ZIGA", "Size": "1-1/4\"", "Thickness": 1.9, "Qty_lines": 800.0, "Wt_kg": 9120.0, "PrimaryMachine": "RF_07", "ActualMachine": "RF_07", "CapPerDay": 2016.0, "TotalMin": 550.5, "StartDay": "2026-05-10", "EndDay": "2026-05-11", "DaysSpan": 2}, {"JobNo": "OFM26-00255", "Route": "ZUPER-THREAD", "OpSeq": 1, "Op": "RF", "Brand": "Zuper ZIGA", "Size": "1-1/4\"", "Thickness": 1.9, "Qty_lines": 1600.0, "Wt_kg": 18240.0, "PrimaryMachine": "RF_07", "ActualMachine": "RF_07", "CapPerDay": 2016.0, "TotalMin": 741.0, "StartDay": "2026-05-10", "EndDay": "2026-05-11", "DaysSpan": 2}, {"JobNo": "OFM26-00256", "Route": "ZIGA-NOTHREAD", "OpSeq": 1, "Op": "RF", "Brand": "ZIGA", "Size": "1/2\"", "Thickness": 1.3, "Qty_lines": 1850.0, "Wt_kg": 6660.0, "PrimaryMachine": "RF_07", "ActualMachine": "RF_07", "CapPerDay": 6000.0, "TotalMin": 508.0, "StartDay": "2026-05-10", "EndDay": "2026-05-11", "DaysSpan": 2}, {"JobNo": "OFM26-00259", "Route": "IMC-THREAD", "OpSeq": 1, "Op": "RF", "Brand": "DAIWA", "Size": "1-1/2\"", "Thickness": 1.95, "Qty_lines": 2000.0, "Wt_kg": 13400.0, "PrimaryMachine": "RF_05", "ActualMachine": "RF_05", "CapPerDay": 6384.0, "TotalMin": 510.4, "StartDay": "2026-05-10", "EndDay": "2026-05-11", "DaysSpan": 2}, {"JobNo": "OFM26-00260", "Route": "ZIGA-THREAD", "OpSeq": 1, "Op": "RF", "Brand": "ZIGA", "Size": "2\"", "Thickness": 1.95, "Qty_lines": 3050.0, "Wt_kg": 50325.0, "PrimaryMachine": "RF_05", "ActualMachine": "RF_05", "CapPerDay": 3998.4, "TotalMin": 726.1, "StartDay": "2026-05-10", "EndDay": "2026-05-11", "DaysSpan": 2}, {"JobNo": "OFM26-00261", "Route": "ZIGA-NOTHREAD", "OpSeq": 1, "Op": "RF", "Brand": "ZIGA", "Size": "1/2\"", "Thickness": 1.3, "Qty_lines": 5000.0, "Wt_kg": 18000.0, "PrimaryMachine": "RF_07", "ActualMachine": "RF_07", "CapPerDay": 6000.0, "TotalMin": 760.0, "StartDay": "2026-05-10", "EndDay": "2026-05-11", "DaysSpan": 2}, {"JobNo": "OFM26-00262", "Route": "ZIGA-THREAD", "OpSeq": 1, "Op": "RF", "Brand": "ZIGA", "Size": "1/2\"", "Thickness": 1.3, "Qty_lines": 14000.0, "Wt_kg": 50400.0, "PrimaryMachine": "RF_07", "ActualMachine": "RF_07", "CapPerDay": 6000.0, "TotalMin": 1480.0, "StartDay": "2026-05-10", "EndDay": "2026-05-13", "DaysSpan": 4}, {"JobNo": "OFM26-00264", "Route": "ZIGA-THREAD", "OpSeq": 1, "Op": "RF", "Brand": "ZIGA", "Size": "1\"", "Thickness": 1.7, "Qty_lines": 1000.0, "Wt_kg": 7400.0, "PrimaryMachine": "RF_08", "ActualMachine": "RF_08", "CapPerDay": 6000.0, "TotalMin": 440.0, "StartDay": "2026-05-10", "EndDay": "2026-05-10", "DaysSpan": 1}, {"JobNo": "OFM26-00265", "Route": "ZIGA-THREAD", "OpSeq": 1, "Op": "RF", "Brand": "ZIGA", "Size": "1-1/4\"", "Thickness": 1.6, "Qty_lines": 3000.0, "Wt_kg": 27600.0, "PrimaryMachine": "RF_05", "ActualMachine": "RF_05", "CapPerDay": 3998.4, "TotalMin": 720.1, "StartDay": "2026-05-10", "EndDay": "2026-05-11", "DaysSpan": 2}, {"JobNo": "OFM26-00272", "Route": "IMC-THREAD", "OpSeq": 1, "Op": "RF", "Brand": "DAIWA", "Size": "1-1/2\"", "Thickness": 1.95, "Qty_lines": 3600.0, "Wt_kg": 24120.0, "PrimaryMachine": "RF_05", "ActualMachine": "RF_05", "CapPerDay": 6384.0, "TotalMin": 630.7, "StartDay": "2026-05-10", "EndDay": "2026-05-11", "DaysSpan": 2}, {"JobNo": "OFM26-00273", "Route": "IMC-THREAD", "OpSeq": 1, "Op": "RF", "Brand": "DAIWA", "Size": "2\"", "Thickness": 1.95, "Qty_lines": 5000.0, "Wt_kg": 43050.0, "PrimaryMachine": "RF_05", "ActualMachine": "RF_05", "CapPerDay": 6384.0, "TotalMin": 735.9, "StartDay": "2026-05-10", "EndDay": "2026-05-11", "DaysSpan": 2}, {"JobNo": "OFM26-00276", "Route": "HZO-THREAD", "OpSeq": 1, "Op": "RF", "Brand": "HZO", "Size": "2\"", "Thickness": 3.2, "Qty_lines": 1600.0, "Wt_kg": 44000.0, "PrimaryMachine": "RF_05", "ActualMachine": "RF_05", "CapPerDay": 2001.6, "TotalMin": 743.7, "StartDay": "2026-05-10", "EndDay": "2026-05-11", "DaysSpan": 2}, {"JobNo": "OFM26-00278", "Route": "HZO-NOTHREAD", "OpSeq": 1, "Op": "RF", "Brand": "HZO", "Size": "1-1/2\"", "Thickness": 3.2, "Qty_lines": 1700.0, "Wt_kg": 27300.0, "PrimaryMachine": "RF_07", "ActualMachine": "RF_07", "CapPerDay": 2016.0, "TotalMin": 764.8, "StartDay": "2026-05-10", "EndDay": "2026-05-11", "DaysSpan": 2}, {"JobNo": "OFM26-00282", "Route": "ZIGA-THREAD", "OpSeq": 1, "Op": "RF", "Brand": "ZIGA", "Size": "2\"", "Thickness": 1.95, "Qty_lines": 2100.0, "Wt_kg": 34650.0, "PrimaryMachine": "RF_05", "ActualMachine": "RF_05", "CapPerDay": 3998.4, "TotalMin": 612.1, "StartDay": "2026-05-10", "EndDay": "2026-05-11", "DaysSpan": 2}, {"JobNo": "OFM26-00290", "Route": "ZIGA-THREAD", "OpSeq": 1, "Op": "RF", "Brand": "ZIGA", "Size": "1-1/2\"", "Thickness": 1.7, "Qty_lines": 2400.0, "Wt_kg": 27120.0, "PrimaryMachine": "RF_05", "ActualMachine": "RF_05", "CapPerDay": 3998.4, "TotalMin": 648.1, "StartDay": "2026-05-10", "EndDay": "2026-05-11", "DaysSpan": 2}, {"JobNo": "OFM26-00294", "Route": "ZUPER-THREAD", "OpSeq": 1, "Op": "RF", "Brand": "Zuper ZIGA", "Size": "1\"", "Thickness": 3.2, "Qty_lines": 100.0, "Wt_kg": 1470.0, "PrimaryMachine": "RF_08", "ActualMachine": "RF_08", "CapPerDay": 2400.0, "TotalMin": 380.0, "StartDay": "2026-05-10", "EndDay": "2026-05-10", "DaysSpan": 1}, {"JobNo": "OFM26-00297", "Route": "ZIGA-THREAD", "OpSeq": 1, "Op": "RF", "Brand": "ZIGA", "Size": "3\"", "Thickness": 2.8, "Qty_lines": 600.0, "Wt_kg": 21300.0, "PrimaryMachine": "RF_04", "ActualMachine": "RF_04", "CapPerDay": 1584.0, "TotalMin": 181.8, "StartDay": "2026-05-10", "EndDay": "2026-05-10", "DaysSpan": 1}, {"JobNo": "OFM26-00298", "Route": "IMC-THREAD", "OpSeq": 1, "Op": "RF", "Brand": "DAIWA", "Size": "1/2\"", "Thickness": 1.6, "Qty_lines": 10000.0, "Wt_kg": 25000.0, "PrimaryMachine": "RF_08", "ActualMachine": "RF_08", "CapPerDay": 8016.0, "TotalMin": 958.8, "StartDay": "2026-05-10", "EndDay": "2026-05-11", "DaysSpan": 2}, {"JobNo": "OFM26-00299", "Route": "IMC-THREAD", "OpSeq": 1, "Op": "RF", "Brand": "DAIWA", "Size": "1\"", "Thickness": 1.9, "Qty_lines": 10000.0, "Wt_kg": 45000.0, "PrimaryMachine": "RF_08", "ActualMachine": "RF_08", "CapPerDay": 8016.0, "TotalMin": 958.8, "StartDay": "2026-05-10", "EndDay": "2026-05-11", "DaysSpan": 2}, {"JobNo": "OFM26-00300", "Route": "ZUPER-NOTHREAD", "OpSeq": 1, "Op": "RF", "Brand": "Zuper ZIGA", "Size": "1\"", "Thickness": 3.2, "Qty_lines": 2000.0, "Wt_kg": 0.0, "PrimaryMachine": "RF_08", "ActualMachine": "RF_08", "CapPerDay": 2400.0, "TotalMin": 760.0, "StartDay": "2026-05-10", "EndDay": "2026-05-11", "DaysSpan": 2}, {"JobNo": "ORW26-00001", "Route": "FDP-FULL", "OpSeq": 1, "Op": "CU", "Brand": "DAIWA", "Size": "1-1/2\"", "Thickness": 3.2, "Qty_lines": 2260.0, "Wt_kg": 294.0, "PrimaryMachine": "CU_HS05", "ActualMachine": "CU_HS05", "CapPerDay": 3840.0, "TotalMin": 282.5, "StartDay": "2026-05-10", "EndDay": "2026-05-10", "DaysSpan": 1}, {"JobNo": "ORW26-00009", "Route": "FDP-FULL", "OpSeq": 1, "Op": "CU", "Brand": "DAIWA", "Size": "1/2\"", "Thickness": null, "Qty_lines": 500.0, "Wt_kg": 30.0, "PrimaryMachine": "CU_HS04", "ActualMachine": "CU_HS04", "CapPerDay": null, "TotalMin": 560.0, "StartDay": "2026-05-10", "EndDay": "2026-05-11", "DaysSpan": 2}, {"JobNo": "ORW26-00013", "Route": "IMC-THREAD", "OpSeq": 1, "Op": "RF", "Brand": "DAIWA", "Size": "1/2\"", "Thickness": 1.6, "Qty_lines": 307.0, "Wt_kg": 768.0, "PrimaryMachine": "RF_08", "ActualMachine": "RF_08", "CapPerDay": 8016.0, "TotalMin": 378.4, "StartDay": "2026-05-10", "EndDay": "2026-05-10", "DaysSpan": 1}, {"JobNo": "ORW26-00017", "Route": "FDP-FULL", "OpSeq": 1, "Op": "CU", "Brand": "DAIWA", "Size": "1-1/2\"", "Thickness": 3.2, "Qty_lines": 2260.0, "Wt_kg": 294.0, "PrimaryMachine": "CU_HS05", "ActualMachine": "CU_HS05", "CapPerDay": 3840.0, "TotalMin": 282.5, "StartDay": "2026-05-10", "EndDay": "2026-05-10", "DaysSpan": 1}, {"JobNo": "ORW26-00022", "Route": "RSC-THREAD", "OpSeq": 1, "Op": "RF", "Brand": "DAIWA", "Size": "3\"", "Thickness": 4.0, "Qty_lines": 100.0, "Wt_kg": 2293.0, "PrimaryMachine": "RF_04", "ActualMachine": "RF_04", "CapPerDay": 3216.0, "TotalMin": 14.9, "StartDay": "2026-05-10", "EndDay": "2026-05-10", "DaysSpan": 1}, {"JobNo": "ORW26-00023", "Route": "RSC-THREAD", "OpSeq": 1, "Op": "RF", "Brand": "DAIWA", "Size": "4\"", "Thickness": 4.0, "Qty_lines": 100.0, "Wt_kg": 3100.0, "PrimaryMachine": "RF_04", "ActualMachine": "RF_04", "CapPerDay": 3216.0, "TotalMin": 14.9, "StartDay": "2026-05-10", "EndDay": "2026-05-10", "DaysSpan": 1}, {"JobNo": "ORW26-00025", "Route": "IMC-THREAD", "OpSeq": 1, "Op": "RF", "Brand": "DAIWA", "Size": "3\"", "Thickness": 2.8, "Qty_lines": 200.0, "Wt_kg": 3700.0, "PrimaryMachine": "RF_04", "ActualMachine": "RF_04", "CapPerDay": 3216.0, "TotalMin": 29.9, "StartDay": "2026-05-10", "EndDay": "2026-05-10", "DaysSpan": 1}, {"JobNo": "ORW26-00039", "Route": "IMC-THREAD", "OpSeq": 1, "Op": "RF", "Brand": "DAIWA", "Size": "3-1/2\"", "Thickness": 2.8, "Qty_lines": 20.0, "Wt_kg": 440.0, "PrimaryMachine": "RF_06", "ActualMachine": "RF_06", "CapPerDay": 8798.4, "TotalMin": 361.1, "StartDay": "2026-05-10", "EndDay": "2026-05-10", "DaysSpan": 1}, {"JobNo": "ORW26-00043", "Route": "FDP-FULL", "OpSeq": 1, "Op": "CU", "Brand": "DAIWA", "Size": "2\"", "Thickness": 4.0, "Qty_lines": 1100.0, "Wt_kg": 319.0, "PrimaryMachine": "CU_HS05", "ActualMachine": "CU_HS05", "CapPerDay": 3840.0, "TotalMin": 137.5, "StartDay": "2026-05-10", "EndDay": "2026-05-10", "DaysSpan": 1}, {"JobNo": "ORW26-00046", "Route": "FDP-THREAD-ONLY", "OpSeq": 1, "Op": "OP_THREAD", "Brand": "DAIWA", "Size": null, "Thickness": null, "Qty_lines": 272.0, "Wt_kg": 0.0, "PrimaryMachine": "\u0e02\u0e49\u0e2d\u0e15\u0e48\u0e2d-\u0e40\u0e01\u0e25\u0e35\u0e22\u0e27", "ActualMachine": "\u0e02\u0e49\u0e2d\u0e15\u0e48\u0e2d-\u0e40\u0e01\u0e25\u0e35\u0e22\u0e27", "CapPerDay": 240.0, "TotalMin": 544.0, "StartDay": "2026-05-10", "EndDay": "2026-05-11", "DaysSpan": 2}, {"JobNo": "ORW26-00048", "Route": "FDP-THREAD-ONLY", "OpSeq": 1, "Op": "OP_THREAD", "Brand": "DAIWA", "Size": null, "Thickness": null, "Qty_lines": 528.0, "Wt_kg": 0.0, "PrimaryMachine": "\u0e02\u0e49\u0e2d\u0e15\u0e48\u0e2d-\u0e40\u0e01\u0e25\u0e35\u0e22\u0e27", "ActualMachine": "\u0e02\u0e49\u0e2d\u0e15\u0e48\u0e2d-\u0e40\u0e01\u0e25\u0e35\u0e22\u0e27", "CapPerDay": 240.0, "TotalMin": 1056.0, "StartDay": "2026-05-10", "EndDay": "2026-05-12", "DaysSpan": 3}, {"JobNo": "ORW26-00049", "Route": "FDP-FULL", "OpSeq": 1, "Op": "CU", "Brand": "DAIWA", "Size": "4\"", "Thickness": null, "Qty_lines": 528.0, "Wt_kg": 671.0, "PrimaryMachine": "CU_BL01", "ActualMachine": "CU_BL01", "CapPerDay": 240.0, "TotalMin": 1056.0, "StartDay": "2026-05-10", "EndDay": "2026-05-12", "DaysSpan": 3}, {"JobNo": "ORW26-00053", "Route": "IMC-THREAD", "OpSeq": 1, "Op": "RF", "Brand": "DAIWA", "Size": "3\"", "Thickness": 2.8, "Qty_lines": 133.0, "Wt_kg": 2461.0, "PrimaryMachine": "RF_04", "ActualMachine": "RF_04", "CapPerDay": 3216.0, "TotalMin": 19.9, "StartDay": "2026-05-10", "EndDay": "2026-05-10", "DaysSpan": 1}, {"JobNo": "ORW26-00054", "Route": "BOW-DAIWA-I", "OpSeq": 1, "Op": "CU", "Brand": "DAIWA", "Size": "3\"", "Thickness": null, "Qty_lines": 120.0, "Wt_kg": 720.0, "PrimaryMachine": "CU_BL01", "ActualMachine": "CU_BL01", "CapPerDay": 480.0, "TotalMin": 120.0, "StartDay": "2026-05-10", "EndDay": "2026-05-10", "DaysSpan": 1}, {"JobNo": "ORW26-00055", "Route": "FDP-THREAD-ONLY", "OpSeq": 1, "Op": "OP_THREAD", "Brand": "DAIWA", "Size": null, "Thickness": null, "Qty_lines": 1022.0, "Wt_kg": 0.0, "PrimaryMachine": "\u0e02\u0e49\u0e2d\u0e15\u0e48\u0e2d-\u0e40\u0e01\u0e25\u0e35\u0e22\u0e27", "ActualMachine": "\u0e02\u0e49\u0e2d\u0e15\u0e48\u0e2d-\u0e40\u0e01\u0e25\u0e35\u0e22\u0e27", "CapPerDay": 240.0, "TotalMin": 2044.0, "StartDay": "2026-05-10", "EndDay": "2026-05-14", "DaysSpan": 5}];
+
+// Render OT chart
+const otMax = Math.max(...otTop.map(x => x.OverflowHours || 0)) || 1;
+const otChart = document.getElementById('ot-chart');
+otChart.innerHTML = otTop.map(o => {
+  const pct = (o.OverflowHours / otMax) * 100;
+  const cls = o.OverflowHours > 200 ? 'red' : (o.OverflowHours > 50 ? 'amber' : '');
+  return `
+    <div class="bar-row">
+      <div class="bar-label">${o.Machine}</div>
+      <div class="bar-track"><div class="bar-fill ${cls}" style="width:${pct}%"></div></div>
+      <div class="bar-value">${o.OverflowHours.toFixed(0)} hr</div>
+    </div>`;
+}).join('');
+
+// Render heatmap
+const colorFor = v => {
+  if (v === 0) return 'white';
+  if (v > 100) return '#FCA5A5';
+  if (v > 90) return '#FCD34D';
+  if (v > 70) return '#86EFAC';
+  if (v > 30) return '#BBF7D0';
+  return '#ECFDF5';
+};
+const textFor = v => v === 0 ? '#9CA3AF' : (v > 100 ? '#7F1D1D' : '#111827');
+
+const hm = document.getElementById('heatmap-wrap');
+let html = '<table class="heatmap"><thead><tr><th class="machine-col">Machine</th>';
+daysList.forEach(d => {
+  const short = d.slice(5);  // MM-DD
+  html += `<th>${short}</th>`;
+});
+html += '</tr></thead><tbody>';
+loadMatrix.forEach(row => {
+  html += `<tr><td class="machine-col">${row.machine}</td>`;
+  row.loads.forEach(v => {
+    html += `<td style="background:${colorFor(v)};color:${textFor(v)}">${v||''}</td>`;
+  });
+  html += '</tr>';
+});
+html += '</tbody></table>';
+hm.innerHTML = html;
+
+// Routes table
+document.getElementById('routes-body').innerHTML = routeData.map(r => 
+  `<tr><td><strong>${r.route}</strong></td><td class="num">${r.jobs}</td><td class="num">${r.tons.toFixed(1)}</td></tr>`
+).join('');
+
+// Schedule table
+document.getElementById('schedule-body').innerHTML = scheduleData.map(s => 
+  `<tr><td>${s.JobNo}</td><td class="num">${s.OpSeq}</td><td>${s.Op}</td>
+   <td>${s.Brand||''}</td><td>${s.Size||''}</td><td class="num">${s.Thickness||''}</td>
+   <td class="num">${(s.Qty_lines||0).toLocaleString()}</td>
+   <td><code>${s.ActualMachine}</code></td>
+   <td>${s.StartDay}</td><td>${s.EndDay}</td><td class="num">${s.DaysSpan}</td></tr>`
+).join('');
+
+// EOM table
+document.getElementById('eom-body').innerHTML = eomData.map(e => {
+  const cls = e.EOM_Status === 'FG' ? 'badge-green' : (e.EOM_Status === 'WIP' ? 'badge-amber' : 'badge-red');
+  return `<tr><td>${e.JobNo}</td><td>${e.Route||''}</td><td>${e.Brand||''}</td>
+   <td class="num">${(e.Wt_kg||0).toLocaleString()}</td>
+   <td>${e.StartDay}</td><td>${e.EndDay}</td>
+   <td><span class="badge ${cls}">${e.EOM_Status}</span></td></tr>`;
+}).join('');
+
+// Tabs
+document.querySelectorAll('.tab').forEach(t => {
+  t.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(x => x.classList.remove('active'));
+    t.classList.add('active');
+    document.getElementById('tab-' + t.dataset.tab).classList.add('active');
+  });
+});
+</script>
+</body>
+</html>
